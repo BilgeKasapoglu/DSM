@@ -16,8 +16,21 @@ pacman::p_load(knitr,
                dplyr,
                mFilter)
 
+
+# Create a directory to store downloaded data
+dir.create("A1/data")
+
+# Download data
+download_data <- function(url, filename){
+  download.file(url = url, destfile = paste0(filename, ".csv"))
+}
+
+url <- "https://drive.google.com/uc?id=1DaYBBo_qohz-QiMOIPu08m0QXbjRsu0Q&export=download"
+
+download_data(url, "A1/data/2020_NL_Region_Mobility_Report")
+
 # Load the data
-dta <- read_csv("Desktop/DSM/A1/2020_NL_Region_Mobility_Report.csv")
+dta <- read.csv("A1/data/2020_NL_Region_Mobility_Report.csv")
 
 summary(dta)
 
