@@ -55,6 +55,7 @@ assign_clusters = function(m, centroidA, centroidB) {
 new_clusters = assign_clusters(m, centroidA, centroidB)
 new_clusters
 
+#new matrix including new cluster membership
 m1 <- cbind(m, new_clusters)
 m1
 
@@ -62,7 +63,7 @@ plot(m1[,1], m1[,2], col = ifelse(m1[,4] == 1, "blue", "red"))
 legend(3,4,legend = c("Cluster A", "Cluster B"), col = c("Blue", "Red"), pch = 1)
 
 #1d.repeat 1c until the answer stops changing
-last_clusters = rep(1, 6)
+last_clusters = rep(-1, 6)
 while (!all(last_clusters == new_clusters)) {
   last_clusters = new_clusters
   centroidA = c(mean(m1[m1[,4] == 1, 1]), mean(m1[m1[,4] == 1, 2]))
