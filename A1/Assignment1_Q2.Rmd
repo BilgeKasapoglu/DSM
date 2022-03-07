@@ -1,3 +1,17 @@
+---
+title:  |
+  <center> DATA SCIENCE METHODS </center>
+  <center> Assignment 01 </center>
+author: "Bilge Kasapoğlu | Hoan Van Nguyen | Jiahe Wang | Roshini Sudhaharan"
+date: "03/03/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup, include=FALSE}
 # Load the necessary packages
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(knitr,
@@ -17,15 +31,10 @@ pacman::p_load(knitr,
                mFilter,
                stats,
                lubridate)
+```
 
-## Q1 (d)
-
-m <- cbind(c(4,1,0,2,6,4),c(1,3,4,1,2,0))
-
-cluster <- kmeans(m,2,nstart=5)
-cluster$cluster
-
-
+```{r setup, include=FALSE}
+# Load the necessary packages
 # Create a directory to store downloaded data
 dir.create("A1/data")
 
@@ -40,14 +49,17 @@ download_data(url, "2020_NL_Region_Mobility_Report")
 
 # Load the data
 dta <- read.csv("2020_NL_Region_Mobility_Report.csv")
+```
 
+```{r setup, include=FALSE}
+# cleaning the dataset
 d = dta[!(is.na(dta$sub_region_1) | dta$sub_region_1 =="") & (is.na(dta$sub_region_2) | dta$sub_region_2==""),]
-
 d <- d %>% select(date,sub_region_1,sub_region_2,
                   transit_stations_percent_change_from_baseline, 
                   workplaces_percent_change_from_baseline, 
 )
 
+# reshaping the dataset
 
 transit = d %>% pivot_wider(
   id_cols = "date",
@@ -66,18 +78,10 @@ work = d %>% pivot_wider(
 
 combined = merge(transit,work,by='date',all=T)
 combined$date=as.Date(combined$date)
+```
 
-##
-#ts=ts(combined$workDrenthe,start=min(combined$date),end=max(combined$date),frequency = 1)
-
-# Hp-filtering
-
-# # omitting the missing values
-# combined <- na.omit(combined)
-# transit <- na.omit(transit)
-# work <- na.omit(work)
-
-# apply hp filter on each column
+```{r setup, include=FALSE}
+## (a)
 combined_new = combined[,1] %>% as.data.frame()
 names(combined_new)[1] <- "date"
 regions <- names(combined)[2:ncol(combined)]
@@ -127,12 +131,13 @@ lines(work_hp$date, work_hp$workOverijssel, type = "l", col = cl[9])
 lines(work_hp$date, work_hp$workSouth Holland, type = "l", col = cl[10])
 lines(work_hp$date, work_hp$workUtrecht, type = "l", col = cl[11])
 lines(work_hp$date, work_hp$workZeeland, type = "l", col = cl[12])
+
 # We see a comovement in work among different regions. However, we think the comovement is weaker in comparison to transit. 
 
+```
 
-
-
-# (b)
+```{r setup, include=FALSE}
+## (b)
 t <- transit_hp[,2:ncol(transit_hp)]
 t <- na.omit(t)
 t <- scale(t)
@@ -151,11 +156,13 @@ checkPC2 <- as.data.frame(loadings_transit_2) %>% arrange(abs(loadings_transit_2
 # loadings plot
 plot(loadings_transit_2)
      
-# We see that provinces cluster together. It seems like they cluster together on the second loadings. 
+# We see that provinces cluster together. It seems like they cluster together on the second loadings.
 
+```
 
+```{r setup, include=FALSE}
 
-# (c)
+## (c)
 
 pr.var=pc_transit$sdev^2
 pve = pr.var/sum(pr.var)
@@ -168,8 +175,28 @@ plot(cumsum(pve),xlab="PC",ylab="Cumulative PVE",ylim=c(0,1),type='b')
 # The first two components seem to explain the most of the variation in the data.
 # Thus, the first two components seems to be the appropriate solution for the 
 # PCA problem. 
+```
 
-# (d)
+```{r setup, include=FALSE}
+
+## (c)
+
+pr.var=pc_transit$sdev^2
+pve = pr.var/sum(pr.var)
+
+# Put two plots side by side
+par(mfrow=c(1,2))
+plot(pve,xlab="PC",ylab="% Variance Explained",ylim=c(0,1),type='b')
+plot(cumsum(pve),xlab="PC",ylab="Cumulative PVE",ylim=c(0,1),type='b')
+
+# The first two components seem to explain the most of the variation in the data.
+# Thus, the first two components seems to be the appropriate solution for the 
+# PCA problem. 
+```
+
+```{r setup, include=FALSE}
+
+## (d)
 
 # The first component of the transit
 loadings_transit_1 <- pc_transit$loadings[,1]
@@ -213,13 +240,4 @@ abline(lm(loadings_whole_1 ~ comb_trans_work), lty = 2, col = "green")
 # It makes more intuitive sense that the second one has comovement because the 
 # points are close to the green line (45 degrees line). We do not observe the 
 # same thing from the first plot. 
-
-# (e)?
-
-# (f)
-
-scores <- pc_whole$score %>% as.data.frame()
-
-
-plot(pc_whole$scores)
-
+```
