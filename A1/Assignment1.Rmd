@@ -4,7 +4,7 @@ title:  |
   <center> Assignment 01 </center>
 author: "Bilge Kasapoğlu | Hoan Van Nguyen | Jiahe Wang | Roshini Sudhaharan"
 date: "07/03/2022"
-output: word_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
