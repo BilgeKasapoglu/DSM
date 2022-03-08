@@ -242,6 +242,28 @@ abline(lm(loadings_whole_1 ~ comb_trans_work), lty = 2, col = "green")
 
 ```{r setup, include=FALSE}
 ## (e)
+
+# Explained variance in %  - transit
+pr.var=pc_transit$sdev^2
+pve = pr.var/sum(pr.var) # the first PC explains 96% var. in the data
+
+
+# Explained variance in % - work
+pr.var_work=pc_work$sdev^2
+pve_work = pr.var_work/sum(pr.var_work) # the first PC explains 89% var. in the data
+
+# Explained variance in % - combined
+pr.var_combined=pc_whole$sdev^2
+pve_combined = pr.var_combined/sum(pr.var_combined) # the first PC explains 85% var. in the data
+
+# We think that work and transit are closer to a consistent estimate of the true
+# underlying mobility since their first PC explains a higher variation in the data
+# in comparison to the combined one. 
+
+# When we compare work and transit, transit seems to be closer to the consistent
+# estimate since it explains a higher variation in the data.
+
+
 ```
 
 ```{r setup, include=FALSE}
