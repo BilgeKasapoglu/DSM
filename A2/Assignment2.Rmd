@@ -33,7 +33,6 @@ summary(soccer)
 ```
 
 
-
 # QUESTION 02:
 
 # QUESTION 03:
