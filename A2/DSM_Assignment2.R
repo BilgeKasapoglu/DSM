@@ -85,7 +85,6 @@ dta$Height <- str_replace(dta$Height, "'", ".") %>% as.numeric()
 head(dta)
 
 data <- lapply(dta, as.numeric) %>% as.data.frame()
-data <- data[, 1:52]
 
 # (a)
 
@@ -148,11 +147,11 @@ reg.lasso = glmnet(data.train[,!(names(data.train) %in% c("Wage"))],
 plot(x = log(reg.lasso$lambda), y = reg.lasso$beta[1,], type="l", 
      ylim=c(-80000,80000))
 text(x = 12, y = max(reg.lasso$beta[1,]), labels = names(reg.lasso$beta[,1])[1])
-for(i in 2:51){
+for(i in 2:211){
   lines(x = log(reg.lasso$lambda), y = reg.lasso$beta[i,])
   text(x = 12, y = max(reg.lasso$beta[i,]), labels = names(reg.lasso$beta[,1])[i])
 }
-choose.lasso <- replicate(51, NA)
-for(i in 1:51){
+choose.lasso <- replicate(221, NA)
+for(i in 1:221){
   choose.lasso[i] <- which.min(reg.lasso$beta[i,])
 }
