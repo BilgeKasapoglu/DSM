@@ -9,11 +9,13 @@ library(readxl)
 library(leaps)
 library(glmnet)
 library(pls)
-library(randomForest)
 
 # Question 1
 # clean environment
 rm(list=ls())
+
+# Not to have scientific notation
+options(scipen = 999) 
 
 # Load the data
 soccer <- read_excel("soccer.xlsx")
@@ -27,9 +29,9 @@ dta <- dta  %>% select(c(4:20))
 # Work Rate
 unique(dta$`Work Rate`)
 dta$`Work Rate` <- ordered(dta$`Work Rate`, levels = 
-                                c("Low/ Low", "Low/ Medium", "Low/ High", 
-                                  "Medium/ Low", "Medium/ Medium", "Medium/ High",
-                                  "High/ Low", "High/ Medium","High/ High"))
+                             c("Low/ Low", "Low/ Medium", "Low/ High", 
+                               "Medium/ Low", "Medium/ Medium", "Medium/ High",
+                               "High/ Low", "High/ Medium","High/ High"))
 dta$`Work Rate` <- unclass(dta$`Work Rate`)
 
 # Body Types
@@ -111,23 +113,47 @@ test.mat = model.matrix(Wage~., data=data.test)
 grid = 10^seq(2, -3, length=100)
 
 # Lasso
-mod.lasso = cv.glmnet(train.mat, data.train[, "Wage"], alpha=1, lambda=grid, thresh=1e-12, nfolds=5)
+mod.lasso = cv.glmnet(train.mat, data.train[, "Wage"], alpha=1, lambda=grid, thresh=1e-12, nfolds = 5)
 lambda.best.lasso = mod.lasso$lambda.min
 lambda.best.lasso
 lasso.pred = predict(mod.lasso, newx=test.mat, s=lambda.best.lasso)
 testerror.lasso=mean((data.test[, "Wage"] - lasso.pred)^2)
 testerror.lasso
 
+# estimate lasso regression with full data and present coefficients
+mod.lasso = glmnet(model.matrix(Wage~., data=data), data[, "Wage"], alpha=1)
+coef.lasso=predict(mod.lasso, s=lambda.best.lasso, type="coefficients")
+coef.lasso
+# the number of non-zero coefficient (of predictors)
+length(which(coef.lasso[-(1:2),]!=0))
+which(coef.lasso[-(1:2),]!=0)
+coef_lasso <- coef.lasso[-(1:2),] %>% as.data.frame()
+names(coef_lasso) <- "Coef.Est."
+coef_lasso <- coef_lasso %>% arrange(abs(coef_lasso$Coef.Est.))
+
 # Ridge
-mod.ridge = cv.glmnet(train.mat, data.train[, "Wage"], alpha=0, lambda=grid, thresh=1e-12, nfolds=5)
+mod.ridge = cv.glmnet(train.mat, data.train[, "Wage"], alpha=0, lambda=grid, thresh=1e-12, nfolds = 5)
 lambda.best.ridge = mod.ridge$lambda.min
 lambda.best.ridge
 ridge.pred = predict(mod.ridge, newx=test.mat, s=lambda.best.ridge)
 testerror.ridge = mean((data.test[, "Wage"] - ridge.pred)^2)
 testerror.ridge
 
-# Random forest
-mod.rf = randomForest(Wage~., data=data, subset=train, mtry=14, importance=TRUE)
+# estimate ridge regression with full data and present coefficients
+mod.ridge = glmnet(model.matrix(Wage~., data=data), data[, "Wage"], alpha=1)
+coef.ridge=predict(mod.ridge, s=lambda.best.ridge, type="coefficients")
+coef.ridge
+
+# the number of non-zero coefficient (of predictors)
+length(which(coef.ridge[-(1:2),]!=0))
+which(coef.ridge[-(1:2),]!=0)
+coef_ridge <- coef.ridge[-(1:2),] %>% as.data.frame()
+names(coef_ridge) <- "Coef.Est."
+coef_ridge<- coef_ridge %>% arrange(abs(coef_ridge$Coef.Est.))
+
+
+# Random Forest
+mod.rf = randomForest(Wage~., data=data, subset=train, mtry=7, importance=TRUE)
 yhat.rf = predict(mod.rf, newdata=data[-train,])
 rf.test = data[-train, "Wage"]
 testerror.rf = mean((yhat.rf-rf.test)^2)
@@ -140,40 +166,49 @@ testerror.lasso
 testerror.ridge
 testerror.rf
 
-# (b)
+MSE <- c(testerror.ls, testerror.lasso, testerror.ridge, testerror.rf) 
+names(MSE) <- c("Linear Regression", "Lasso", "Ridge", "Random Forest")
+MSE
+which.min(MSE) 
 
-# Linear regression
-sort(summary(lm.fit)$coefficients[,4])
+# Lasso performs the best. 
+
+# Lasso tends to select one regressor and not the other. 
+# Since we have perfect multicollinearity among our dummy variables, 
+# Lasso performs the best by setting perfectly correlated variables to zero. 
+
+
+## (b)
+
+# Linear Regression
 # The best 10 covariates from linear regression are: Value, International.Reputation, 
 # Age, Nationality_Dominican.Republic, Position_LS, Position_CAM, Skill.Moves, 
 # Position_LF, Position_RF, Body.Type_Other.
 
 # Lasso
-reg.lasso = glmnet(data.train[,!(names(data.train) %in% c("Wage"))],
-                   data.train$Wage, nlambda=lambda.best.lasso, alpha=0, 
-                   family="gaussian", standardize=TRUE)
-plot(x = log(reg.lasso$lambda), y = reg.lasso$beta[1,], type="l", 
-     ylim=c(-80000,80000))
-text(x = 12, y = max(reg.lasso$beta[1,]), labels = names(reg.lasso$beta[,1])[1])
-for(i in 2:211){
-  lines(x = log(reg.lasso$lambda), y = reg.lasso$beta[i,])
-  text(x = 12, y = max(reg.lasso$beta[i,]), labels = names(reg.lasso$beta[,1])[i])
-}
+
+# The best 10 covariates from Lasso are: Body.Type_Messi, Body.Type_C..Ronaldo, Body.Type_Neymar, Body.Type_Shaqiri,
+# Body.Type_Courtois, Nationality_Dominican.Republic, Body.Type_Other, Nationality_Central.African.Rep.
+# Position_LF, Nationality_Russia
 
 # Ridge
-reg.ridge = glmnet(data.train[,!(names(data.train) %in% c("Wage"))],
-                   data.train$Wage, nlambda=lambda.best.ridge, alpha=0, 
-                   family="gaussian", standardize=TRUE)
-plot(x = log(reg.ridge$lambda), y = reg.ridge$beta[1,], type="l", 
-     ylim=c(-80000,80000))
-text(x = 12, y = max(reg.ridge$beta[1,]), labels = names(reg.ridge$beta[,1])[1])
-for(i in 2:211){
-  lines(x = log(reg.ridge$lambda), y = reg.ridge$beta[i,])
-  text(x = 12, y = max(reg.ridge$beta[i,]), labels = names(reg.ridge$beta[,1])[i])
-}
 
-# Random forest
-importance(mod.rf)
+# The best 10 covariates from Ridge are: Body.Type_Messi, Body.Type_C..Ronaldo, Body.Type_Neymar, Body.Type_Shaqiri,
+# Body.Type_Courtois, Nationality_Dominican.Republic, Body.Type_Other, Nationality_Central.African.Rep.
+# Position_LF, Nationality_Russia
+
+# Random Forest 
+
 # The best 10 covariates from random forest are: Age, Overall, Potential, Value,
 # International.Reputation, Weak.Foot, Skill.Moves, Work.Rate,Height, Weight.
+
+## (c)
+
+# Messi, Ronaldo and Neymar are the represent players. They have the highest coefficients in the 
+# Lasso estimation meaning that they have the highest importance in explaining the
+# wages. 
+
+
+
+
 
