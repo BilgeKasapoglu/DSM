@@ -1,0 +1,39 @@
+---
+title: "DATA SCIENCE METHODS | Assignment 02"
+author: "Bilge Kasapoğlu | Hoan Van Nguyen | Jiahe Wang | Roshini Sudhaharan"
+date: "25/03/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Load the required libraries
+```{r}
+library(foreign)
+library(data.table)
+library(dplyr)
+library(fastDummies)
+library(stringr)
+library(readxl)
+```
+
+# QUESTION 01:
+
+#### Load the data set
+```{r}
+soccer <- read_excel("soccer.xlsx")
+```
+
+#### Inspect the data set
+```{r}
+dim(soccer)
+summary(soccer)
+```
+
+
+
+# QUESTION 02:
+
+# QUESTION 03:
