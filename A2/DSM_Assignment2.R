@@ -5,7 +5,7 @@ library(data.table)
 library(dplyr)
 library(fastDummies)
 library(stringr)
-
+library(readxl)
 
 # Question 1
 # clean environment
