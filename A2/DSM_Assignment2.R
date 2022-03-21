@@ -136,11 +136,16 @@ varImpPlot(mod.rf)
 
 # Overview of test errors
 testerror.ls
-testerror.lassos
+testerror.lasso
 testerror.ridge
 testerror.rf
 
 # (b)
+
+# Linear regression
+summary(lm.fit)
+
+# Lasso
 reg.lasso = glmnet(data.train[,!(names(data.train) %in% c("Wage"))],
                    data.train$Wage, nlambda=lambda.best.lasso, alpha=0, 
                    family="gaussian", standardize=TRUE)
@@ -151,7 +156,18 @@ for(i in 2:211){
   lines(x = log(reg.lasso$lambda), y = reg.lasso$beta[i,])
   text(x = 12, y = max(reg.lasso$beta[i,]), labels = names(reg.lasso$beta[,1])[i])
 }
-choose.lasso <- replicate(221, NA)
-for(i in 1:221){
-  choose.lasso[i] <- which.min(reg.lasso$beta[i,])
+
+# Ridge
+reg.ridge = glmnet(data.train[,!(names(data.train) %in% c("Wage"))],
+                   data.train$Wage, nlambda=lambda.best.ridge, alpha=0, 
+                   family="gaussian", standardize=TRUE)
+plot(x = log(reg.ridge$lambda), y = reg.ridge$beta[1,], type="l", 
+     ylim=c(-80000,80000))
+text(x = 12, y = max(reg.ridge$beta[1,]), labels = names(reg.ridge$beta[,1])[1])
+for(i in 2:211){
+  lines(x = log(reg.ridge$lambda), y = reg.ridge$beta[i,])
+  text(x = 12, y = max(reg.ridge$beta[i,]), labels = names(reg.ridge$beta[,1])[i])
 }
+
+# Random forest
+importance(mod.rf)
