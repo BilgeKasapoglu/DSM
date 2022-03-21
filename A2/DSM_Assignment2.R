@@ -9,6 +9,7 @@ library(readxl)
 library(leaps)
 library(glmnet)
 library(pls)
+library(randomForest)
 
 # Question 1
 # clean environment
@@ -125,8 +126,8 @@ ridge.pred = predict(mod.ridge, newx=test.mat, s=lambda.best.ridge)
 testerror.ridge = mean((data.test[, "Wage"] - ridge.pred)^2)
 testerror.ridge
 
-
-
+# Random forest
+mod.rf = randomForest(Wage~., data=data, subset=train, mtry=14, importance=TRUE)
 
 
 
