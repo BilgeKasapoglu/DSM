@@ -128,6 +128,8 @@ testerror.ridge
 
 # Random forest
 mod.rf = randomForest(Wage~., data=data, subset=train, mtry=14, importance=TRUE)
-
-
-
+yhat.rf = predict(mod.rf, newdata=data[-train,])
+rf.test = data[-train, "Wage"]
+mean((yhat.rf-rf.test)^2)
+importance(mod.rf)
+varImpPlot(mod.rf)
