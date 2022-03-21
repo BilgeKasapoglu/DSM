@@ -6,6 +6,9 @@ library(dplyr)
 library(fastDummies)
 library(stringr)
 library(readxl)
+library(leaps)
+library(glmnet)
+library(pls)
 
 # Question 1
 # clean environment
@@ -18,10 +21,7 @@ summary(soccer)
 # Drop the missing and duplicated values 
 dta <-  na.omit(soccer)
 dta <- dta[!duplicated(dta$Name),] 
-
-
 dta <- dta  %>% select(c(4:20))
-
 
 # Work Rate
 unique(dta$`Work Rate`)
@@ -29,36 +29,30 @@ dta$`Work Rate` <- ordered(dta$`Work Rate`, levels =
                                 c("Low/ Low", "Low/ Medium", "Low/ High", 
                                   "Medium/ Low", "Medium/ Medium", "Medium/ High",
                                   "High/ Low", "High/ Medium","High/ High"))
-                                                  
 dta$`Work Rate` <- unclass(dta$`Work Rate`)
 
 # Body Types
 unique(dta$`Body Type`)
 table(dta$`Body Type`)
 dta$`Body Type`[dta$`Body Type` == "PLAYER_BODY_TYPE_25"] <- "Other"
-
 dta <- dummy_cols(dta, select_columns = "Body Type")
 dta <- dta  %>% select(-c("Body Type")) 
-
 
 # Position
 unique(dta$Position)
 table(dta$Position)
-
 dta <- dummy_cols(dta, select_columns = "Position")
 dta <- dta  %>% select(-c("Position")) 
 
 # Preferred Foot
 unique(dta$`Preferred Foot`)
 table(dta$`Preferred Foot`)
-
 dta <- dummy_cols(dta, select_columns = "Preferred Foot")
 dta <- dta  %>% select(-c("Preferred Foot")) 
 
 # Convert Wage into Numeric
 sum(!str_detect(dta$Wage, "€"))
 sum(!str_detect(dta$Wage, "K"))
-
 dta$Wage <- str_remove(dta$Wage, "€")
 dta$Wage <- str_remove(dta$Wage, "K") %>% as.numeric()
 dta$Wage <- dta$Wage * 1000
@@ -73,15 +67,12 @@ money_convert <- function(x)  {
     value = value*1000000
   }
 }
-
 sum(!str_detect(dta$Value, "€"))
 sum(!str_detect(dta$Value, "K"))
 sum(!str_detect(dta$Value, "M"))
-
 dta$Value <- sapply(dta$Value, money_convert)
 
-
-# Nationaity 
+# Nationality 
 dta <- dummy_cols(dta, select_columns = "Nationality")
 dta <- dta  %>% select(-c("Nationality")) 
 
@@ -93,6 +84,7 @@ dta$Height <- str_replace(dta$Height, "'", ".") %>% as.numeric()
 head(dta)
 
 data <- lapply(dta, as.numeric) %>% as.data.frame()
+
 # (a)
 
 # Split data into two parts
@@ -110,11 +102,28 @@ lm.pred = predict(lm.fit, data.test)  %>% as.numeric() # get predicted outcomes
 testerror.ls = mean((data.test[, "Wage"] - lm.pred)^2) # find MSE
 testerror.ls
 
+# Convert data to matrix format
+train.mat = model.matrix(Wage~., data=data.train)
+test.mat = model.matrix(Wage~., data=data.test)
+
+# Create a grid of lambdas from a large range
+grid = 10^seq(2, -3, length=100)
+
 # Lasso
+mod.lasso = cv.glmnet(train.mat, data.train[, "Wage"], alpha=1, lambda=grid, thresh=1e-12)
+lambda.best.lasso = mod.lasso$lambda.min
+lambda.best.lasso
+lasso.pred = predict(mod.lasso, newx=test.mat, s=lambda.best.lasso)
+testerror.lasso=mean((data.test[, "Wage"] - lasso.pred)^2)
+testerror.lasso
 
-
-
-
+# Ridge
+mod.ridge = cv.glmnet(train.mat, data.train[, "Wage"], alpha=0, lambda=grid, thresh=1e-12)
+lambda.best.ridge = mod.ridge$lambda.min
+lambda.best.ridge
+ridge.pred = predict(mod.ridge, newx=test.mat, s=lambda.best.ridge)
+testerror.ridge = mean((data.test[, "Wage"] - ridge.pred)^2)
+testerror.ridge
 
 
 
