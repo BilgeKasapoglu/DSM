@@ -18,10 +18,7 @@ summary(soccer)
 # Drop the missing and duplicated values 
 dta <-  na.omit(soccer)
 dta <- dta[!duplicated(dta$Name),] 
-
-
 dta <- dta  %>% select(c(4:20))
-
 
 # Work Rate
 unique(dta$`Work Rate`)
@@ -29,36 +26,30 @@ dta$`Work Rate` <- ordered(dta$`Work Rate`, levels =
                                 c("Low/ Low", "Low/ Medium", "Low/ High", 
                                   "Medium/ Low", "Medium/ Medium", "Medium/ High",
                                   "High/ Low", "High/ Medium","High/ High"))
-                                                  
 dta$`Work Rate` <- unclass(dta$`Work Rate`)
 
 # Body Types
 unique(dta$`Body Type`)
 table(dta$`Body Type`)
 dta$`Body Type`[dta$`Body Type` == "PLAYER_BODY_TYPE_25"] <- "Other"
-
 dta <- dummy_cols(dta, select_columns = "Body Type")
 dta <- dta  %>% select(-c("Body Type")) 
-
 
 # Position
 unique(dta$Position)
 table(dta$Position)
-
 dta <- dummy_cols(dta, select_columns = "Position")
 dta <- dta  %>% select(-c("Position")) 
 
 # Preferred Foot
 unique(dta$`Preferred Foot`)
 table(dta$`Preferred Foot`)
-
 dta <- dummy_cols(dta, select_columns = "Preferred Foot")
 dta <- dta  %>% select(-c("Preferred Foot")) 
 
 # Convert Wage into Numeric
 sum(!str_detect(dta$Wage, "€"))
 sum(!str_detect(dta$Wage, "K"))
-
 dta$Wage <- str_remove(dta$Wage, "€")
 dta$Wage <- str_remove(dta$Wage, "K") %>% as.numeric()
 dta$Wage <- dta$Wage * 1000
@@ -73,15 +64,12 @@ money_convert <- function(x)  {
     value = value*1000000
   }
 }
-
 sum(!str_detect(dta$Value, "€"))
 sum(!str_detect(dta$Value, "K"))
 sum(!str_detect(dta$Value, "M"))
-
 dta$Value <- sapply(dta$Value, money_convert)
 
-
-# Nationaity 
+# Nationality 
 dta <- dummy_cols(dta, select_columns = "Nationality")
 dta <- dta  %>% select(-c("Nationality")) 
 
@@ -93,6 +81,7 @@ dta$Height <- str_replace(dta$Height, "'", ".") %>% as.numeric()
 head(dta)
 
 data <- lapply(dta, as.numeric) %>% as.data.frame()
+
 # (a)
 
 # Split data into two parts
