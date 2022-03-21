@@ -85,6 +85,7 @@ dta$Height <- str_replace(dta$Height, "'", ".") %>% as.numeric()
 head(dta)
 
 data <- lapply(dta, as.numeric) %>% as.data.frame()
+data <- data[, 1:52]
 
 # (a)
 
@@ -127,9 +128,31 @@ testerror.ridge = mean((data.test[, "Wage"] - ridge.pred)^2)
 testerror.ridge
 
 # Random forest
-mod.rf = randomForest(Wage~., data=data, subset=train, mtry=14, importance=TRUE)
+mod.rf = randomForest(Wage~., data=data, subset=train, mtry=7, importance=TRUE)
 yhat.rf = predict(mod.rf, newdata=data[-train,])
 rf.test = data[-train, "Wage"]
-mean((yhat.rf-rf.test)^2)
+testerror.rf = mean((yhat.rf-rf.test)^2)
 importance(mod.rf)
 varImpPlot(mod.rf)
+
+# Overview of test errors
+testerror.ls
+testerror.lassos
+testerror.ridge
+testerror.rf
+
+# (b)
+reg.lasso = glmnet(data.train[,!(names(data.train) %in% c("Wage"))],
+                   data.train$Wage, nlambda=lambda.best.lasso, alpha=0, 
+                   family="gaussian", standardize=TRUE)
+plot(x = log(reg.lasso$lambda), y = reg.lasso$beta[1,], type="l", 
+     ylim=c(-80000,80000))
+text(x = 12, y = max(reg.lasso$beta[1,]), labels = names(reg.lasso$beta[,1])[1])
+for(i in 2:51){
+  lines(x = log(reg.lasso$lambda), y = reg.lasso$beta[i,])
+  text(x = 12, y = max(reg.lasso$beta[i,]), labels = names(reg.lasso$beta[,1])[i])
+}
+choose.lasso <- replicate(51, NA)
+for(i in 1:51){
+  choose.lasso[i] <- which.min(reg.lasso$beta[i,])
+}
