@@ -111,7 +111,7 @@ test.mat = model.matrix(Wage~., data=data.test)
 grid = 10^seq(2, -3, length=100)
 
 # Lasso
-mod.lasso = cv.glmnet(train.mat, data.train[, "Wage"], alpha=1, lambda=grid, thresh=1e-12)
+mod.lasso = cv.glmnet(train.mat, data.train[, "Wage"], alpha=1, lambda=grid, thresh=1e-12, nfolds=5)
 lambda.best.lasso = mod.lasso$lambda.min
 lambda.best.lasso
 lasso.pred = predict(mod.lasso, newx=test.mat, s=lambda.best.lasso)
@@ -119,7 +119,7 @@ testerror.lasso=mean((data.test[, "Wage"] - lasso.pred)^2)
 testerror.lasso
 
 # Ridge
-mod.ridge = cv.glmnet(train.mat, data.train[, "Wage"], alpha=0, lambda=grid, thresh=1e-12)
+mod.ridge = cv.glmnet(train.mat, data.train[, "Wage"], alpha=0, lambda=grid, thresh=1e-12, nfolds=5)
 lambda.best.ridge = mod.ridge$lambda.min
 lambda.best.ridge
 ridge.pred = predict(mod.ridge, newx=test.mat, s=lambda.best.ridge)
@@ -127,7 +127,7 @@ testerror.ridge = mean((data.test[, "Wage"] - ridge.pred)^2)
 testerror.ridge
 
 # Random forest
-mod.rf = randomForest(Wage~., data=data, subset=train, mtry=7, importance=TRUE)
+mod.rf = randomForest(Wage~., data=data, subset=train, mtry=14, importance=TRUE)
 yhat.rf = predict(mod.rf, newdata=data[-train,])
 rf.test = data[-train, "Wage"]
 testerror.rf = mean((yhat.rf-rf.test)^2)
@@ -143,7 +143,10 @@ testerror.rf
 # (b)
 
 # Linear regression
-summary(lm.fit)
+sort(summary(lm.fit)$coefficients[,4])
+# The best 10 covariates from linear regression are: Value, International.Reputation, 
+# Age, Nationality_Dominican.Republic, Position_LS, Position_CAM, Skill.Moves, 
+# Position_LF, Position_RF, Body.Type_Other.
 
 # Lasso
 reg.lasso = glmnet(data.train[,!(names(data.train) %in% c("Wage"))],
@@ -171,3 +174,6 @@ for(i in 2:211){
 
 # Random forest
 importance(mod.rf)
+# The best 10 covariates from random forest are: Age, Overall, Potential, Value,
+# International.Reputation, Weak.Foot, Skill.Moves, Work.Rate,Height, Weight.
+
