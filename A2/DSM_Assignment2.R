@@ -6,6 +6,9 @@ library(dplyr)
 library(fastDummies)
 library(stringr)
 library(readxl)
+library(leaps)
+library(glmnet)
+library(pls)
 
 # Question 1
 # clean environment
@@ -99,11 +102,28 @@ lm.pred = predict(lm.fit, data.test)  %>% as.numeric() # get predicted outcomes
 testerror.ls = mean((data.test[, "Wage"] - lm.pred)^2) # find MSE
 testerror.ls
 
+# Convert data to matrix format
+train.mat = model.matrix(Wage~., data=data.train)
+test.mat = model.matrix(Wage~., data=data.test)
+
+# Create a grid of lambdas from a large range
+grid = 10^seq(2, -3, length=100)
+
 # Lasso
+mod.lasso = cv.glmnet(train.mat, data.train[, "Wage"], alpha=1, lambda=grid, thresh=1e-12)
+lambda.best.lasso = mod.lasso$lambda.min
+lambda.best.lasso
+lasso.pred = predict(mod.lasso, newx=test.mat, s=lambda.best.lasso)
+testerror.lasso=mean((data.test[, "Wage"] - lasso.pred)^2)
+testerror.lasso
 
-
-
-
+# Ridge
+mod.ridge = cv.glmnet(train.mat, data.train[, "Wage"], alpha=0, lambda=grid, thresh=1e-12)
+lambda.best.ridge = mod.ridge$lambda.min
+lambda.best.ridge
+ridge.pred = predict(mod.ridge, newx=test.mat, s=lambda.best.ridge)
+testerror.ridge = mean((data.test[, "Wage"] - ridge.pred)^2)
+testerror.ridge
 
 
 
