@@ -2,37 +2,260 @@
 title: "DATA SCIENCE METHODS | Assignment 02"
 author: "Bilge Kasapoğlu | Hoan Van Nguyen | Jiahe Wang | Roshini Sudhaharan"
 date: "25/03/2022"
-output: pdf_document
+output: word_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-#### Load the required libraries
+#### Clean environment
+
 ```{r}
+rm(list=ls())
+```
+
+#### Load the required libraries
+
+```{r echo=TRUE, results='hide', error=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 library(foreign)
 library(data.table)
 library(dplyr)
 library(fastDummies)
 library(stringr)
 library(readxl)
+library(leaps)
+library(glmnet)
+library(pls)
+library(fastDummies)
+library(randomForest)
 ```
 
 # QUESTION 01:
 
-#### Load the data set
-```{r}
-soccer <- read_excel("soccer.xlsx")
+#### Not to have scientific notation
+
+```{r echo=TRUE, results='hide'}
+options(scipen = 999) 
 ```
 
-#### Inspect the data set
-```{r}
-dim(soccer)
+#### Load and inspect the data set
+
+```{r echo=TRUE}
+soccer <- read_excel("soccer.xlsx")
 summary(soccer)
 ```
 
+#### Drop the missing and duplicated values
+```{r echo=TRUE, results='hide'}
+dta <-  na.omit(soccer)
+dta <- dta[!duplicated(dta$Name),] 
+dta <- dta  %>% select(c(4:20))
+```
 
-# QUESTION 02:
+#### Transform variables if necessary
+```{r echo=TRUE, results='hide'}
+# Work Rate
+unique(dta$`Work Rate`)
+dta$`Work Rate` <- ordered(dta$`Work Rate`, levels = 
+                             c("Low/ Low", "Low/ Medium", "Low/ High", 
+                               "Medium/ Low", "Medium/ Medium", "Medium/ High",
+                               "High/ Low", "High/ Medium","High/ High"))
+dta$`Work Rate` <- unclass(dta$`Work Rate`)
 
-# QUESTION 03:
+# Body Types
+unique(dta$`Body Type`)
+table(dta$`Body Type`)
+dta$`Body Type`[dta$`Body Type` == "PLAYER_BODY_TYPE_25"] <- "Other"
+dta <- dummy_cols(dta, select_columns = "Body Type")
+dta <- dta  %>% select(-c("Body Type")) 
+
+# Position
+unique(dta$Position)
+table(dta$Position)
+dta <- dummy_cols(dta, select_columns = "Position")
+dta <- dta  %>% select(-c("Position")) 
+
+# Preferred Foot
+unique(dta$`Preferred Foot`)
+table(dta$`Preferred Foot`)
+dta <- dummy_cols(dta, select_columns = "Preferred Foot")
+dta <- dta  %>% select(-c("Preferred Foot")) 
+
+# Convert Wage into Numeric
+sum(!str_detect(dta$Wage, "€"))
+sum(!str_detect(dta$Wage, "K"))
+dta$Wage <- str_remove(dta$Wage, "€")
+dta$Wage <- str_remove(dta$Wage, "K") %>% as.numeric()
+dta$Wage <- dta$Wage * 1000
+
+# Convert Value into Numeric
+money_convert <- function(x)  {
+  value = as.numeric(str_sub(x, 2, -2))
+  suffix = str_sub(x, nchar(x), -1)
+  if (suffix == "K"){
+    value = value*1000
+  } else if ((suffix == "M"))  {
+    value = value*1000000
+  }
+}
+sum(!str_detect(dta$Value, "€"))
+sum(!str_detect(dta$Value, "K"))
+sum(!str_detect(dta$Value, "M"))
+dta$Value <- sapply(dta$Value, money_convert)
+
+# Nationality 
+dta <- dummy_cols(dta, select_columns = "Nationality")
+dta <- dta  %>% select(-c("Nationality")) 
+
+# Weight
+dta$Weight <- str_remove(dta$Weight, "lbs") %>% as.numeric()
+
+# Height 
+dta$Height <- str_replace(dta$Height, "'", ".") %>% as.numeric()
+head(dta)
+
+data <- lapply(dta, as.numeric) %>% as.data.frame()
+```
+
+## 1a.
+
+#### Linear Regression
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Split data into two parts
+set.seed(21) # for reproducibility
+sum(is.na(data)) # check whether there are missing values
+train.size = dim(data)[1] / 2 # learn how many observations we need to sample
+train = sample(1:dim(data)[1], train.size) # get indexes of observations for training set
+test = -train # get indexes of observations for test set
+data.train = data[train, ] # extract training observations
+data.test = data[test, ] # extract test observations
+
+# Linear Regression
+lm.fit = lm(Wage~., data=data.train) # apply linear regression
+lm.pred = predict(lm.fit, data.test)  %>% as.numeric() # get predicted outcomes
+testerror.ls = mean((data.test[, "Wage"] - lm.pred)^2) # find MSE
+testerror.ls
+```
+
+
+#### Lasso
+
+```{r echo=TRUE}
+# Convert data to matrix format
+train.mat = model.matrix(Wage~., data=data.train)
+test.mat = model.matrix(Wage~., data=data.test)
+
+# Create a grid of lambdas from a large range
+grid = 10^seq(2, -3, length=100)
+
+# Lasso
+mod.lasso = cv.glmnet(train.mat, data.train[, "Wage"], alpha=1, lambda=grid, thresh=1e-12, nfolds = 5)
+lambda.best.lasso = mod.lasso$lambda.min
+lambda.best.lasso
+lasso.pred = predict(mod.lasso, newx=test.mat, s=lambda.best.lasso)
+testerror.lasso=mean((data.test[, "Wage"] - lasso.pred)^2)
+testerror.lasso
+
+# estimate lasso regression with full data and present coefficients
+mod.lasso = glmnet(model.matrix(Wage~., data=data), data[, "Wage"], alpha=1)
+coef.lasso=predict(mod.lasso, s=lambda.best.lasso, type="coefficients")
+coef.lasso
+
+# the number of non-zero coefficient (of predictors)
+length(which(coef.lasso[-(1:2),]!=0))
+which(coef.lasso[-(1:2),]!=0)
+coef_lasso <- coef.lasso[-(1:2),] %>% as.data.frame()
+names(coef_lasso) <- "Coef.Est."
+coef_lasso <- coef_lasso %>% arrange(abs(coef_lasso$Coef.Est.))
+```
+
+
+#### Ridge
+
+```{r echo=TRUE}
+# Ridge
+mod.ridge = cv.glmnet(train.mat, data.train[, "Wage"], alpha=0, lambda=grid, thresh=1e-12, nfolds = 5)
+lambda.best.ridge = mod.ridge$lambda.min
+lambda.best.ridge
+ridge.pred = predict(mod.ridge, newx=test.mat, s=lambda.best.ridge)
+testerror.ridge = mean((data.test[, "Wage"] - ridge.pred)^2)
+testerror.ridge
+
+# estimate ridge regression with full data and present coefficients
+mod.ridge = glmnet(model.matrix(Wage~., data=data), data[, "Wage"], alpha=1)
+coef.ridge=predict(mod.ridge, s=lambda.best.ridge, type="coefficients")
+coef.ridge
+
+# the number of non-zero coefficient (of predictors)
+length(which(coef.ridge[-(1:2),]!=0))
+which(coef.ridge[-(1:2),]!=0)
+coef_ridge <- coef.ridge[-(1:2),] %>% as.data.frame()
+names(coef_ridge) <- "Coef.Est."
+coef_ridge<- coef_ridge %>% arrange(abs(coef_ridge$Coef.Est.))
+```
+
+
+#### Random Forest
+
+```{r echo=TRUE}
+# Random Forest
+mod.rf = randomForest(Wage~., data=data, subset=train, mtry=7, importance=TRUE)
+yhat.rf = predict(mod.rf, newdata=data[-train,])
+rf.test = data[-train, "Wage"]
+testerror.rf = mean((yhat.rf-rf.test)^2)
+importance(mod.rf)
+varImpPlot(mod.rf)
+```
+
+
+#### Overview
+
+```{r echo=TRUE}
+# Overview of test errors
+testerror.ls
+testerror.lasso
+testerror.ridge
+testerror.rf
+
+MSE <- c(testerror.ls, testerror.lasso, testerror.ridge, testerror.rf) 
+names(MSE) <- c("Linear Regression", "Lasso", "Ridge", "Random Forest")
+MSE
+which.min(MSE) 
+```
+
+
+#### Conclusion: Lasso performs the best. Lasso tends to select one regressor and not the other. 
+#### Since we have perfect multicollinearity among our dummy variables, 
+#### Lasso performs the best by setting perfectly correlated variables to zero.
+
+## 1b. 
+
+#### Linear Regression
+#### The best 10 covariates from linear regression are: Value, International.Reputation, 
+#### Age, Nationality_Dominican.Republic, Position_LS, Position_CAM, Skill.Moves, 
+#### Position_LF, Position_RF, Body.Type_Other.
+
+#### Lasso
+
+#### The best 10 covariates from Lasso are: Body.Type_Messi, Body.Type_C..Ronaldo, Body.Type_Neymar, Body.Type_Shaqiri,
+#### Body.Type_Courtois, Nationality_Dominican.Republic, Body.Type_Other, Nationality_Central.African.Rep.
+#### Position_LF, Nationality_Russia
+
+#### Ridge
+
+#### The best 10 covariates from Ridge are: Body.Type_Messi, Body.Type_C..Ronaldo, Body.Type_Neymar, Body.Type_Shaqiri,
+#### Body.Type_Courtois, Nationality_Dominican.Republic, Body.Type_Other, Nationality_Central.African.Rep.
+#### Position_LF, Nationality_Russia
+
+#### Random Forest 
+
+#### The best 10 covariates from random forest are: Age, Overall, Potential, Value,
+#### International.Reputation, Weak.Foot, Skill.Moves, Work.Rate,Height, Weight.
+
+## 1c.
+
+#### Messi, Ronaldo and Neymar are the represent players. They have the highest coefficients in the 
+#### Lasso estimation meaning that they have the highest importance in explaining the
+#### wages.

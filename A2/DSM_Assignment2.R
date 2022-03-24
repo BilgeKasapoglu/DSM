@@ -9,6 +9,8 @@ library(readxl)
 library(leaps)
 library(glmnet)
 library(pls)
+library(fastDummies)
+library(randomForest))
 
 # Question 1
 # clean environment
