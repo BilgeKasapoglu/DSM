@@ -1,4 +1,17 @@
-# DSM -  Assignment 2
+##############################
+#### DATA SCIENCE METHODS ####
+##############################
+
+#######################
+#### ASSIGNMENT 02 ####
+#######################
+
+# GROUP 01
+# Bilge Kasapoglu - u941664
+# Hoan Van Nguyen - u1274449
+# Jiahe Wang - u489199
+# Roshini Sudhaharan - u725261
+
 # load necessary packages
 library(foreign)
 library(data.table)
@@ -10,7 +23,7 @@ library(leaps)
 library(glmnet)
 library(pls)
 library(fastDummies)
-library(randomForest))
+library(randomForest)
 
 # Question 1
 # clean environment
